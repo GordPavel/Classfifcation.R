@@ -15,8 +15,8 @@ my.stem <- function(texts) {
   close(in.file)
   text
 }
-rm(my.stem)
 like.data$stemmed <- like.data$fixed %>% my.stem
 dislike.data$stemmed <- dislike.data$fixed %>% my.stem
 breakdown.data$stemmed <- breakdown.data$fixed %>% my.stem
 feedback.data$stemmed <- feedback.data$fixed %>% my.stem
+rm(my.stem)
