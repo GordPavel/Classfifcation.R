@@ -39,3 +39,4 @@ for (i in 2:47) {
     }
   })
 }
+rm(i,articles,page)
