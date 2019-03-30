@@ -1,16 +1,15 @@
 require(tm)
 require(magrittr)
 require(dplyr)
+require(data.table)
 require(keras)
-# install_keras()
-
-texts <- like.data$stemmed
-labels <- kmed$clusters %>% as.numeric %>% to_categorical
+install_keras()
 
 max.words <- 10000
 maxlen <- 20
+
 tokenizer <- text_tokenizer(num_words = max.words) %>% 
-  fit_text_tokenizer(texts)
+  fit_text_tokenizer(all.data$stemmed)
 
 word.index <- tokenizer$word_index
 
@@ -26,37 +25,84 @@ for(word in names(word.index)) {
     embedding.matrix[index + 1 ,] <- embedding.vector
 }
 
-sequences <- texts_to_sequences(tokenizer,texts)
+sequences <- texts_to_sequences(tokenizer,all.data$stemmed)
 data <- pad_sequences(sequences,maxlen = maxlen)
-indexes <- sample(1:nrow(data) , size = nrow(data) * .7)
-x_train <- data[indexes,]
-y_train <- labels[indexes,]
-x_val <- data[-indexes,]
-y_val <- labels[-indexes,]
+labels <- ( all.data$cluster %>% as.numeric - 1 ) %>% to_categorical
 
-model <- keras_model_sequential() %>%
-  layer_embedding(input_dim = max.words,
-                  output_dim = embedding.dim,
-                  input_length = maxlen) %>%
-  layer_lstm(units = 128, return_sequences = T, 
-             recurrent_dropout = .2 ,
-             dropout = .2) %>%
-  layer_simple_rnn(units = 64) %>%
-  layer_dense(units = ncol(labels), activation = "softmax") 
-model %>% get_layer(index = 1) %>%
-  set_weights(list(embedding.matrix)) %>%
-  freeze_weights
-model %>% compile(optimizer = "rmsprop",
-                  loss = "categorical_crossentropy",
-                  metrics = c("accuracy"))
-history <- model %>%
-  keras::fit(
-    x_train,
-    y_train,
-    epochs = 20,
-    batch_size = 64,
-    validation_data = list(x_val, y_val),
-    validation_split = .2
+test.indexes <- sample(1:nrow(all.data), size = nrow(all.data) * .3)
+test.data <- data[test.indexes,]
+test.labels <- labels[test.indexes,]
+
+data <- data[-test.indexes,]
+labels <- labels[-test.indexes,]
+
+require(tfruns)
+require(tfestimators)
+validation.indexes <- sample(1:nrow(data), size = nrow(data) * .3)
+x.education <- data[-validation.indexes, ]
+y.education <- labels[-validation.indexes, ]
+x.validation <- data[validation.indexes, ]
+y.validation <- labels[validation.indexes, ]
+
+FLAGS <- flags(
+  flag_integer("lstm_units", 128),
+  flag_numeric("lstm_recurrnt_dropout", .5),
+  flag_numeric("lstm_dropout", .2),
+  flag_integer("rnn_units", 64),
+  flag_numeric("rnn_recurrnt_dropout", .5),
+  flag_numeric("rnn_dropout", .7),
+  flag_string("optimizer", 'rmsprop')
+)
+
+runs <- tuning_run(
+  "run_model.R",
+  flags = list(
+    lstm_units = c(16,32,64,128,256),
+    lstm_recurrnt_dropout = seq(.1,.9,by = .1),
+    lstm_dropout = seq(.1,.9,by = .1),
+    rnn_units = c(16,32,64,128,256),
+    rnn_recurrnt_dropout = seq(.1,.9,by = .1),
+    rnn_dropout = seq(.1,.9,by = .1),
+    optimizer = c('SGD','RMSprop',
+                  'Adagrad','Adadelta',
+                  'Adam','Adamax','Nadam')
   )
+)
 
-plot(history)
+accuracy <- model %>% evaluate(test.data, test.labels)
+predictions <-
+  model %>%
+  predict(test.data)
+
+predictions <- predictions %>%
+  apply(MARGIN = 1, function(row)
+    list(prob = max(row) , class = which.max(row))) %>%
+  rbindlist
+
+rm(
+  data,
+  tokenizer,
+  embedding.matrix,
+  embedding.dim,
+  x_education,
+  y_education,
+  x_validation,
+  y_validation,
+  x_test,
+  y_test,
+  education.indexes,
+  probabs,
+  test.indexes,
+  validation.indexes,
+  split.proportionally,
+  embedding.vector,
+  index,
+  max.words,
+  maxlen,
+  texts,
+  indexes,
+  word,
+  sequences,
+  word.index,
+  labels
+)

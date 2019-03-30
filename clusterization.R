@@ -2,11 +2,11 @@ require(magrittr)
 require(dplyr)
 require(textTinyR)
 
-data <- like.data$question
+data <- feedback.data$stemmed
 clust_vec = textTinyR::tokenize_transform_vec_docs(
   data,
   as_token = T,
-  to_lower = T,
+  # to_lower = T,
   remove_punctuation_vector = F,
   remove_numbers = F,
   trim_token = T,
@@ -19,6 +19,7 @@ clust_vec = textTinyR::tokenize_transform_vec_docs(
   stemmer = "porter2_stemmer",
   threads = 4,
   verbose = T
+  # utf_locale = 'ru_RU.UTF-8'
 )
 init = textTinyR::Doc2Vec$new(
   token_list = clust_vec$token,
@@ -63,12 +64,12 @@ opt_cl = ClusterR::Optimal_Clusters_KMeans(
   max_iters = 50,
   initializer = "kmeans++",
   tol = 1e-04,
-  plot_clusters = TRUE,
-  verbose = T,
+  plot_clusters = T,
+  verbose = F,
   tol_optimal_init = 0.3,
   seed = 1
 )
-num_clust = 11
+num_clust = 14
 kmed = ClusterR::Cluster_Medoids(
   scal_dat,
   clusters = num_clust,
@@ -86,3 +87,16 @@ freq_clust = textTinyR::cluster_frequency(
   cluster_vector = kmed$clusters,
   verbose = T
 )
+feedback.data$cluster <- kmed$clusters
+rm(clust_vec,
+   doc2_idf,
+   gl_term_w,
+   init,
+   scal_dat,
+   tm,
+   utl,
+   data,
+   num_clust,
+   opt_cl,
+   kmed,
+   freq_clust)
