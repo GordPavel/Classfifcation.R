@@ -57,15 +57,13 @@ FLAGS <- flags(
 runs <- tuning_run(
   "run_model.R",
   flags = list(
-    lstm_units = c(16,32,64,128,256),
-    lstm_recurrnt_dropout = seq(.1,.9,by = .1),
-    lstm_dropout = seq(.1,.9,by = .1),
-    rnn_units = c(16,32,64,128,256),
-    rnn_recurrnt_dropout = seq(.1,.9,by = .1),
-    rnn_dropout = seq(.1,.9,by = .1),
-    optimizer = c('SGD','RMSprop',
-                  'Adagrad','Adadelta',
-                  'Adam','Adamax','Nadam')
+    lstm_units = c(64,128),
+    lstm_recurrnt_dropout = с(.1,.5,.9),
+    lstm_dropout = с(.1,.5,.9),
+    rnn_units = c(64,128),
+    rnn_recurrnt_dropout = с(.1,.5,.9),
+    rnn_dropout = с(.1,.5,.9),
+    optimizer = c('SGD','RMSprop')
   )
 )
 
