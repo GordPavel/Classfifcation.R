@@ -29,43 +29,25 @@ sequences <- texts_to_sequences(tokenizer,all.data$stemmed)
 data <- pad_sequences(sequences,maxlen = maxlen)
 labels <- ( all.data$cluster %>% as.numeric - 1 ) %>% to_categorical
 
-test.indexes <- sample(1:nrow(all.data), size = nrow(all.data) * .3)
+set.seed(Sys.time() %>% as.numeric)
+test.indexes <- sample(1:nrow(data), size = nrow(data) * .3)
 test.data <- data[test.indexes,]
 test.labels <- labels[test.indexes,]
 
 data <- data[-test.indexes,]
 labels <- labels[-test.indexes,]
 
-require(tfruns)
-require(tfestimators)
-validation.indexes <- sample(1:nrow(data), size = nrow(data) * .3)
-x.education <- data[-validation.indexes, ]
-y.education <- labels[-validation.indexes, ]
-x.validation <- data[validation.indexes, ]
-y.validation <- labels[validation.indexes, ]
-
 FLAGS <- flags(
-  flag_integer("lstm_units", 128),
-  flag_numeric("lstm_recurrnt_dropout", .5),
-  flag_numeric("lstm_dropout", .2),
-  flag_integer("rnn_units", 64),
+  flag_integer("lstm_units", 64),
+  flag_numeric("lstm_recurrnt_dropout", .7),
+  flag_numeric("lstm_dropout", .3),
+  flag_integer("rnn_units", 96),
   flag_numeric("rnn_recurrnt_dropout", .5),
-  flag_numeric("rnn_dropout", .7),
+  flag_numeric("rnn_dropout", .3),
   flag_string("optimizer", 'rmsprop')
 )
 
-runs <- tuning_run(
-  "run_model.R",
-  flags = list(
-    lstm_units = c(64,128),
-    lstm_recurrnt_dropout = с(.1,.5,.9),
-    lstm_dropout = с(.1,.5,.9),
-    rnn_units = c(64,128),
-    rnn_recurrnt_dropout = с(.1,.5,.9),
-    rnn_dropout = с(.1,.5,.9),
-    optimizer = c('SGD','RMSprop')
-  )
-)
+source('~/социология/education.R')
 
 accuracy <- model %>% evaluate(test.data, test.labels)
 predictions <-
@@ -75,7 +57,7 @@ predictions <-
 predictions <- predictions %>%
   apply(MARGIN = 1, function(row)
     list(prob = max(row) , class = which.max(row))) %>%
-  rbindlist
+  data.table::rbindlist()
 
 rm(
   data,
